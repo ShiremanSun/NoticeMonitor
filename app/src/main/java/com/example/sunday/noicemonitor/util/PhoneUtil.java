@@ -1,14 +1,11 @@
 package com.example.sunday.noicemonitor.util;
 
-import android.Manifest;
 import android.annotation.SuppressLint;
 import android.content.Context;
-import android.content.pm.PackageManager;
-import android.graphics.Bitmap;
-import android.support.v4.app.ActivityCompat;
+import android.os.Build;
 import android.telephony.TelephonyManager;
 
-public class IMEIUtil {
+public class PhoneUtil {
     @SuppressLint({"MissingPermission", "HardwareIds"})
     public static String getPhoneIMEI(Context context) {
         String IMEI="";
@@ -16,7 +13,9 @@ public class IMEIUtil {
        if(manager!=null){
            IMEI=manager.getDeviceId();
        }
-
        return IMEI;
+   }
+   public static String getPhoneName(){
+       return Build.BRAND;
    }
 }

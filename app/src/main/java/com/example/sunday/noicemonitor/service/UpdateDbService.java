@@ -1,6 +1,5 @@
 package com.example.sunday.noicemonitor.service;
 
-import android.app.Activity;
 import android.app.Service;
 import android.content.Intent;
 import android.os.Binder;
@@ -8,11 +7,9 @@ import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
 
-import com.example.sunday.noicemonitor.MainActivity;
 import com.example.sunday.noicemonitor.decibel.DecibelClient;
 import com.example.sunday.noicemonitor.http.HttpClient;
 import com.example.sunday.noicemonitor.location.LocateClient;
-import com.example.sunday.noicemonitor.util.IMEIUtil;
 
 import java.lang.ref.WeakReference;
 
@@ -22,25 +19,21 @@ public class UpdateDbService extends Service {
 
     private DecibelClient decibelClient;
     private HttpClient httpClient;
-    private LocateClient locateClient;
 
-
-    private Handler mHandler;
-
-
-    private Callback callback;
-
-    private int timeSlot=1000*30;
-    public UpdateDbService() {
-
+    public LocateClient getLocateClient() {
+        return locateClient;
     }
 
+    private LocateClient locateClient;
+
+    private int timeSlot=1000;
+    public UpdateDbService() {
+    }
     @Override
     public void onCreate(){
-        mHandler=new MyHandler(this);
-        decibelClient=new DecibelClient(mHandler,timeSlot);
-        locateClient=new LocateClient(timeSlot);
-        httpClient=new HttpClient(decibelClient,locateClient,this);
+        decibelClient =new DecibelClient(timeSlot);
+        locateClient=new LocateClient(timeSlot,getApplicationContext());
+        httpClient=new HttpClient(decibelClient,locateClient,getApplicationContext());
         httpClient.start();
         super.onCreate();
     }
@@ -72,41 +65,7 @@ public class UpdateDbService extends Service {
        }
     }
 
-    private static class MyHandler extends Handler{
-        private WeakReference<Service> weakReference;
-        MyHandler(Service service){
-            weakReference=new WeakReference<>(service);
-        }
-         double db;
-        @Override
-        public void handleMessage(Message msg) {
-            if(msg.what==0){
-                db= (double) msg.obj;
-                UpdateDbService updateDbService= (UpdateDbService) weakReference.get();
-                if(updateDbService!=null){
-                    if(updateDbService.callback!=null){
-                        updateDbService.callback.updateDb(db);
-                    }
-                }
-
-
-
-            }
-        }
+    public DecibelClient getDecibelClient() {
+        return decibelClient;
     }
-
-
-    public void registerCallback(Callback callback){
-        this.callback=callback;
-    }
-
-    public void unregisterCallback(){
-        this.callback=null;
-    }
-
-    public interface Callback{
-        void updateDb(double db);
-    }
-
-
 }

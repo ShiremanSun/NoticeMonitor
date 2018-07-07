@@ -34,7 +34,8 @@
         android:theme="@style/AppTheme">
         <meta-data
             android:name="com.baidu.lbsapi.API_KEY"
-            android:value="dCXm9Pr84cr3KzD1dUkmCd10bGECGpZZ"></meta-data>
+            android:value="dCXm9Pr84cr3KzD1dUkmCd10bGECGpZZ">
+        </meta-data>
 
         <activity android:name=".MainActivity">
             <intent-filter>
@@ -47,7 +48,13 @@
         <service
             android:name=".service.UpdateDbService"
             android:enabled="true"
-            android:exported="true"></service>
+            android:exported="true">
+
+        </service>
+        <service
+            android:name="com.baidu.location.f"
+            android:enabled="true"
+            android:process=":remote" />
     </application>
 
 </manifest>

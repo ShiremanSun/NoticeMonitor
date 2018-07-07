@@ -1,93 +1,99 @@
 package com.example.sunday.noicemonitor.decibel;
 
+import android.media.AudioFormat;
+import android.media.AudioRecord;
 import android.media.MediaRecorder;
-import android.os.Handler;
-import android.os.Message;
 import android.util.Log;
 
-import java.io.File;
-import java.io.IOException;
-
+import java.util.ArrayList;
+import java.util.List;
 
 public class DecibelClient {
+    private List<CallBack> mCallBacks;
+    private static final String TAG = "AudioRecord";
+    static final int SAMPLE_RATE_IN_HZ = 8000;
+    static final int BUFFER_SIZE = AudioRecord.getMinBufferSize(SAMPLE_RATE_IN_HZ,
+            AudioFormat.CHANNEL_IN_DEFAULT, AudioFormat.ENCODING_PCM_16BIT);
+    private AudioRecord mAudioRecord;
+    private boolean isGetVoiceRun;
+    private final Object mLock;
 
-    private MediaRecorder mMediaRecorder;
-    private static final int MAX_LENGTH = 1000 * 60 * 10;// 最大录音时长1000*60*10;
-    private String filePath;
+    private double db;
+    private int timeSlot;
 
-   private Handler handler;
 
-   private int timeSlot;
-
-    private long startTime;
-    private long endTime;
-
-    public DecibelClient(Handler handler,int timeSlot){
-        this.handler=handler;
-        this.filePath="/dev/null";
+    public DecibelClient(int timeSlot) {
+        mLock = new Object();
         this.timeSlot=timeSlot;
+        mCallBacks=new ArrayList<>(2);
     }
 
-
-    public void startRecord(){
-        if(mMediaRecorder==null){
-            mMediaRecorder=new MediaRecorder();
-        }
-        mMediaRecorder.setAudioSource(MediaRecorder.AudioSource.MIC);
-        mMediaRecorder.setOutputFormat(MediaRecorder.OutputFormat.DEFAULT);
-        mMediaRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AMR_NB);
-        mMediaRecorder.setOutputFile(filePath);
-        mMediaRecorder.setMaxDuration(MAX_LENGTH);
-        try {
-            Log.d("imTrying","trying");
-            mMediaRecorder.prepare();
-            mMediaRecorder.start();
-            startTime=System.currentTimeMillis();
-            updateMicStatus();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+    public double getDb(){
+        return db;
+    }
+    public void registerCallBack(CallBack callBack){
+       if(!mCallBacks.contains(callBack)){
+           mCallBacks.add(callBack);
+       }
     }
 
-    public long stopRecord(){
-        if(mMediaRecorder==null){
-            return 0L;
-        }
-        endTime=System.currentTimeMillis();
-        mMediaRecorder.stop();
-        mMediaRecorder.reset();
-        mMediaRecorder.release();
-        mMediaRecorder=null;
-        return endTime-startTime;
+    public void unregisterCallBack(CallBack callBack){
+        mCallBacks.remove(callBack);
+    }
+    private void removeCallbacks(){
+        mCallBacks.clear();
     }
 
-    private Runnable mUpdateMicStatusTimer=new Runnable() {
-        @Override
-        public void run() {
-          updateMicStatus();
+    public void stop() {
+        removeCallbacks();
+        this.isGetVoiceRun = false;
+    }
+
+    public void getNoiseLevel() {
+        if (isGetVoiceRun) {
+            return;
         }
-    };
+        mAudioRecord = new AudioRecord(MediaRecorder.AudioSource.MIC,
+                SAMPLE_RATE_IN_HZ, AudioFormat.CHANNEL_IN_DEFAULT,
+                AudioFormat.ENCODING_PCM_16BIT, BUFFER_SIZE);
 
-    /*
-    * 更新话筒状态*/
+        isGetVoiceRun = true;
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                mAudioRecord.startRecording();
+                short[] buffer = new short[BUFFER_SIZE];
+                while (isGetVoiceRun) {
+                    int r = mAudioRecord.read(buffer, 0, BUFFER_SIZE);
+                    long v = 0;
+                    for (short aBuffer : buffer) {
+                        v += aBuffer * aBuffer;
+                    }
+                    double mean = v / (double) r;
+                    final double volume = 10 * Math.log10(mean);
+                    db=volume;
 
-    private int BASE=1;
+                    Log.d(TAG, "db value:" + volume);
+                    // 根据需求的时间更新
+                    synchronized (mLock) {
+                        try {
+                            mLock.wait(timeSlot);
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                    for(CallBack callBack:mCallBacks){
+                        callBack.callBack(volume);
+                    }
+                }
+                mAudioRecord.stop();
+                mAudioRecord.release();
+                mAudioRecord = null;
 
-    private void updateMicStatus(){
-        if(mMediaRecorder!=null){
-            double ratio=(double)mMediaRecorder.getMaxAmplitude()/BASE;
-            Log.d("update",ratio+"");
-            double db;
-            handler.postDelayed(mUpdateMicStatusTimer,timeSlot);
-            if(ratio>1){
-                db=(20*Math.log(ratio))*0.7;
-                Message message=Message.obtain(handler);
-                message.what=0x00;
-                message.obj=db;
-                handler.sendMessage(message);
-                handler.postDelayed(mUpdateMicStatusTimer,timeSlot);
-                Log.d("decible",db+"");
             }
-        }
+        }).start();
+    }
+    public interface CallBack{
+        void callBack(double db);
     }
 }
