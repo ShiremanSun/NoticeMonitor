@@ -20,27 +20,23 @@ public class UpdateDbService extends Service {
     private DecibelClient decibelClient;
     private HttpClient httpClient;
 
-    public LocateClient getLocateClient() {
-        return locateClient;
-    }
 
-    private LocateClient locateClient;
-
-    private int timeSlot=1000;
     public UpdateDbService() {
     }
     @Override
     public void onCreate(){
+        int timeSlot = 1000;
         decibelClient =new DecibelClient(timeSlot);
-        locateClient=new LocateClient(timeSlot,getApplicationContext());
-        httpClient=new HttpClient(decibelClient,locateClient,getApplicationContext());
+        LocateClient locateClient = new LocateClient(timeSlot, getApplicationContext());
+        httpClient=new HttpClient(decibelClient, locateClient,getApplicationContext());
         httpClient.start();
         super.onCreate();
     }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        return super.onStartCommand(intent, flags, startId);
+        //service会自动重启
+        return START_STICKY;
     }
 
     @Override

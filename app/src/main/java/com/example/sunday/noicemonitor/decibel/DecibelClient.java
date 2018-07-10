@@ -7,6 +7,8 @@ import android.util.Log;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
 
 public class DecibelClient {
     private List<CallBack> mCallBacks;
@@ -17,12 +19,16 @@ public class DecibelClient {
     private AudioRecord mAudioRecord;
     private boolean isGetVoiceRun;
     private final Object mLock;
+    private Timer timer;
+    private MyTimerTask myTimerTask;
 
     private double db;
     private int timeSlot;
 
 
     public DecibelClient(int timeSlot) {
+        myTimerTask=new MyTimerTask();
+        timer=new Timer();
         mLock = new Object();
         this.timeSlot=timeSlot;
         mCallBacks=new ArrayList<>(2);
@@ -46,6 +52,7 @@ public class DecibelClient {
 
     public void stop() {
         removeCallbacks();
+        timer.cancel();
         this.isGetVoiceRun = false;
     }
 
@@ -56,7 +63,6 @@ public class DecibelClient {
         mAudioRecord = new AudioRecord(MediaRecorder.AudioSource.MIC,
                 SAMPLE_RATE_IN_HZ, AudioFormat.CHANNEL_IN_DEFAULT,
                 AudioFormat.ENCODING_PCM_16BIT, BUFFER_SIZE);
-
         isGetVoiceRun = true;
         new Thread(new Runnable() {
             @Override
@@ -72,7 +78,6 @@ public class DecibelClient {
                     double mean = v / (double) r;
                     final double volume = 10 * Math.log10(mean);
                     db=volume;
-
                     Log.d(TAG, "db value:" + volume);
                     // 根据需求的时间更新
                     synchronized (mLock) {
@@ -92,8 +97,19 @@ public class DecibelClient {
 
             }
         }).start();
+        timer.schedule(new MyTimerTask(),1000);
+        timer.schedule(myTimerTask,0,1000*60*10);
     }
     public interface CallBack{
         void callBack(double db);
+        void updateChart(double db);
+    }
+    private  class MyTimerTask extends TimerTask{
+        @Override
+        public void run() {
+            for(CallBack callBack:mCallBacks){
+                callBack.updateChart(db);
+            }
+        }
     }
 }

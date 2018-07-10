@@ -25,7 +25,7 @@ public class LocateClient {
         option.setLocationMode(LocationClientOption.LocationMode.Hight_Accuracy);
         option.setCoorType("bd0911");
         //设置扫描时间间隔
-        option.setScanSpan(timeSlot*10);
+        option.setScanSpan(timeSlot*1000);
         option.setOpenGps(true);
         //服务停止的时候杀死进程
         option.setIgnoreKillProcess(false);
@@ -54,7 +54,6 @@ public class LocateClient {
             longitude = location.getLongitude();    //获取经度信息
 
             //获取定位类型、定位错误返回码，具体信息可参照类参考中BDLocation类中的说明
-
             Log.d("latitude",latitude+"");
         }
     }

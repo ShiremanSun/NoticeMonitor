@@ -9,7 +9,7 @@ public class MySQLiteOpenHelper extends SQLiteOpenHelper {
     private final static String DATABASE_NAME="noise.db";
     private final static String TABLE_NAME="NOISE_TIME";
     private final static int version=1;
-    private final static String CREATE_TABLE="CREATE TABLE "+TABLE_NAME+"(ID INT PRIMARY KEY AUTOINCREMENT,"+
+    private final static String CREATE_TABLE="CREATE TABLE "+TABLE_NAME+"(_ID INTEGER PRIMARY KEY AUTOINCREMENT,"+
             "TIME varchar(15),"+"DECIBEL smallint)";
 
     private MySQLiteOpenHelper(Context context) {

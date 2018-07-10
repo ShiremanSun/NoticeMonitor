@@ -75,15 +75,16 @@ public class HttpClient implements DecibelClient.CallBack {
         decibelClient.stop();
         locateClient.stopLocate();
    }
-  private void sentForm(double db, LocationBean locationBean){
+  private void sentForm(double db, LocationBean locationBean) throws Exception{
       FormBody formBody=new FormBody.Builder()
               .add("IMEI",IMEI)
-              .add("longitude",String.format(Locale.CHINA,"%.2f",locationBean.getLongitude()))
-              .add("latitude",String.format(Locale.CHINA,"%.2f",locationBean.getLatitude()))
+              .add("longitude", String.valueOf(locationBean.getLongitude()))
+              .add("latitude",String.valueOf(locationBean.getLatitude()))
               .add("decibels",String.format(Locale.CHINA,"%.0f",db))
               .add("time",getTime(System.currentTimeMillis()))
               .build();
-
+      Log.d("longitude",locationBean.getLatitude()+"");
+      Log.d("longitude",locationBean.getLongitude()+"");
       Request request=new Request.Builder()
               .url(url)
               .post(formBody)
@@ -108,13 +109,18 @@ public class HttpClient implements DecibelClient.CallBack {
       @Override
       public void run() {
           while (isRunning){
-              sentForm(dbl,locationBean);
+
               synchronized (mLock){
                   try {
                       mLock.wait(1000*30);
                   } catch (InterruptedException e) {
                       e.printStackTrace();
                   }
+              }
+              try {
+                  sentForm(dbl,locationBean);
+              } catch (Exception e) {
+                  e.printStackTrace();
               }
 
           }
@@ -167,6 +173,11 @@ public class HttpClient implements DecibelClient.CallBack {
     public void callBack(double db) {
         locationBean=locateClient.getLocation();
         dbl=db;
+
+    }
+
+    @Override
+    public void updateChart(double db) {
 
     }
 }
